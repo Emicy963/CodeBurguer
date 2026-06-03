@@ -1,5 +1,7 @@
 {
   "rewrites": [
-    { "source": "/", "destination": "/codeburger_extremamente_atualizado.html" }
+    { "source": "/admin/login", "destination": "/admin/login.html" },
+    { "source": "/admin",       "destination": "/admin/index.html" },
+    { "source": "/",            "destination": "/codeburger_extremamente_atualizado.html" }
   ]
 }
