@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeBurger — Pedidos</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --red:    #e63946;
+    --red-dk: #c1121f;
+    --bg:     #1a1a1a;
+    --card:   #242424;
+    --border: #2e2e2e;
+    --text:   #f0f0f0;
+    --muted:  #888;
+  }
+
+  body {
+    background: var(--bg);
+    font-family: 'Segoe UI', sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  header h1 { font-size: 1.2rem; font-weight: 800; color: var(--red); }
+  header span { font-size: 0.78rem; color: var(--muted); margin-left: 8px; }
+
+  .btn-logout {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    font-size: 0.82rem;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .btn-logout:hover { color: var(--red); border-color: var(--red); }
+
+  /* ── MAIN ── */
+  main { padding: 24px 20px; max-width: 1100px; margin: 0 auto; }
+
+  /* ── STATS ── */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .stat {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+  }
+
+  .stat-num  { font-size: 1.8rem; font-weight: 800; }
+  .stat-lbl  { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+  /* ── FILTROS ── */
+  .filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .filter-btn {
+    padding: 7px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.83rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .filter-btn:hover,
+  .filter-btn.active { background: var(--red); border-color: var(--red); color: #fff; }
+
+  .btn-refresh {
+    margin-left: auto;
+    padding: 7px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.83rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-refresh:hover { color: var(--text); border-color: #555; }
+
+  /* ── TABELA ── */
+  .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+
+  thead th {
+    background: #1e1e1e;
+    padding: 12px 14px;
+    text-align: left;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(255,255,255,0.03); }
+
+  td { padding: 12px 14px; vertical-align: top; }
+
+  .itens-cell { max-width: 260px; color: var(--muted); font-size: 0.8rem; line-height: 1.4; }
+
+  /* ── STATUS BADGE ── */
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .badge-pendente      { background: rgba(255,190,11,0.15);  color: #ffbe0b; }
+  .badge-em_preparacao { background: rgba(58,134,255,0.15);  color: #3a86ff; }
+  .badge-a_caminho     { background: rgba(131,56,236,0.15);  color: #9b5de5; }
+  .badge-entregue      { background: rgba(56,176,0,0.15);    color: #38b000; }
+
+  /* ── BOTÕES DE ACÇÃO ── */
+  .btn-action {
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: none;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.15s;
+  }
+  .btn-action:hover   { opacity: 0.8; }
+  .btn-action:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-iniciar   { background: #ffbe0b; color: #000; }
+  .btn-caminho   { background: #3a86ff; color: #fff; }
+  .btn-entregue  { background: #38b000; color: #fff; }
+
+  /* ── EMPTY / LOADING ── */
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+
+  .spinner {
+    width: 32px; height: 32px;
+    border: 3px solid var(--border);
+    border-top-color: var(--red);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin: 40px auto;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: #2e2e2e;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 18px;
+    font-size: 0.88rem;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.25s;
+    z-index: 100;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.ok   { border-color: #38b000; color: #38b000; }
+  .toast.err  { border-color: var(--red); color: var(--red); }
+
+  @media (max-width: 600px) {
+    .itens-cell { display: none; }
+    td, th { padding: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>CodeBurger</h1>
+    <span>Painel de Admin</span>
+  </div>
+  <button class="btn-logout" id="logout">Sair</button>
+</header>
+
+<main>
+  <div class="stats" id="stats"></div>
+
+  <div class="filters" id="filters">
+    <button class="filter-btn active" data-filter="todos">Todos</button>
+    <button class="filter-btn" data-filter="pendente">Pendentes</button>
+    <button class="filter-btn" data-filter="em_preparacao">Em Preparação</button>
+    <button class="filter-btn" data-filter="a_caminho">A Caminho</button>
+    <button class="filter-btn" data-filter="entregue">Entregues</button>
+    <button class="btn-refresh" id="refresh">↻ Actualizar</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Nº</th>
+          <th>Data / Hora</th>
+          <th>Cliente</th>
+          <th>Contacto</th>
+          <th>Local</th>
+          <th class="itens-cell">Itens</th>
+          <th>Total</th>
+          <th>Status</th>
+          <th>Acção</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const TOKEN = localStorage.getItem('admin_token');
+  if (!TOKEN) window.location.replace('/admin/login');
+
+  let orders      = [];
+  let activeFilter = 'todos';
+
+  const NEXT_STATUS = {
+    pendente:      { label: 'Iniciar',   cls: 'btn-iniciar',  next: 'em_preparacao' },
+    em_preparacao: { label: 'A Caminho', cls: 'btn-caminho',  next: 'a_caminho'     },
+    a_caminho:     { label: 'Entregue',  cls: 'btn-entregue', next: 'entregue'      }
+  };
+
+  const STATUS_LABEL = {
+    pendente:      'Pendente',
+    em_preparacao: 'Em Preparação',
+    a_caminho:     'A Caminho',
+    entregue:      'Entregue'
+  };
+
+  // ── Fetch orders ──────────────────────────────────────────────────────────
+  async function loadOrders() {
+    const tbody = document.getElementById('tbody');
+    tbody.innerHTML = '<tr><td colspan="9"><div class="spinner"></div></td></tr>';
+
+    try {
+      const res = await fetch('/api/admin/orders', {
+        headers: { 'Authorization': `Bearer ${TOKEN}` }
+      });
+
+      if (res.status === 401) { logout(); return; }
+      if (!res.ok) throw new Error();
+
+      orders = await res.json();
+      renderStats();
+      renderTable();
+    } catch {
+      tbody.innerHTML = '<tr><td colspan="9"><div class="empty">Erro ao carregar pedidos.</div></td></tr>';
+    }
+  }
+
+  // ── Stats ─────────────────────────────────────────────────────────────────
+  function renderStats() {
+    const counts = { total: orders.length, pendente: 0, em_preparacao: 0, a_caminho: 0, entregue: 0 };
+    orders.forEach(o => { if (counts[o.status] !== undefined) counts[o.status]++; });
+
+    const receita = orders.filter(o => o.status === 'entregue').reduce((s, o) => s + o.total, 0);
+
+    document.getElementById('stats').innerHTML = `
+      <div class="stat"><div class="stat-num">${counts.total}</div><div class="stat-lbl">Total</div></div>
+      <div class="stat"><div class="stat-num" style="color:#ffbe0b">${counts.pendente}</div><div class="stat-lbl">Pendentes</div></div>
+      <div class="stat"><div class="stat-num" style="color:#3a86ff">${counts.em_preparacao}</div><div class="stat-lbl">Em Prep.</div></div>
+      <div class="stat"><div class="stat-num" style="color:#9b5de5">${counts.a_caminho}</div><div class="stat-lbl">A Caminho</div></div>
+      <div class="stat"><div class="stat-num" style="color:#38b000">${counts.entregue}</div><div class="stat-lbl">Entregues</div></div>
+      <div class="stat"><div class="stat-num" style="color:#e63946">${receita.toLocaleString('pt')} Kz</div><div class="stat-lbl">Receita</div></div>
+    `;
+  }
+
+  // ── Table ─────────────────────────────────────────────────────────────────
+  function renderTable() {
+    const tbody = document.getElementById('tbody');
+    const filtered = activeFilter === 'todos' ? orders : orders.filter(o => o.status === activeFilter);
+
+    if (!filtered.length) {
+      tbody.innerHTML = `<tr><td colspan="9"><div class="empty">Nenhum pedido encontrado.</div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = '';
+    filtered.forEach(order => {
+      const tr  = document.createElement('tr');
+      const ns  = NEXT_STATUS[order.status];
+      const btn = ns
+        ? `<button class="btn-action ${ns.cls}" data-id="${order.id}" data-next="${ns.next}">${ns.label}</button>`
+        : `<span style="color:var(--muted);font-size:0.78rem">—</span>`;
+
+      tr.innerHTML = `
+        <td><strong>${escHtml(order.order_num)}</strong></td>
+        <td style="white-space:nowrap">${escHtml(order.data_hora)}</td>
+        <td>${escHtml(order.cliente)}</td>
+        <td>${escHtml(order.contacto)}</td>
+        <td>${escHtml(order.localizacao)}</td>
+        <td class="itens-cell">${escHtml(order.itens)}</td>
+        <td style="white-space:nowrap"><strong>${order.total.toLocaleString('pt')} Kz</strong></td>
+        <td><span class="badge badge-${order.status}">${STATUS_LABEL[order.status] || order.status}</span></td>
+        <td>${btn}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // ── Update status ─────────────────────────────────────────────────────────
+  document.getElementById('tbody').addEventListener('click', async function(e) {
+    const btn = e.target.closest('.btn-action');
+    if (!btn) return;
+
+    const id     = Number(btn.dataset.id);
+    const status = btn.dataset.next;
+    btn.disabled = true;
+
+    try {
+      const res = await fetch('/api/admin/orders', {
+        method:  'PATCH',
+        headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ id, status })
+      });
+
+      if (res.status === 401) { logout(); return; }
+      if (!res.ok) throw new Error();
+
+      const order = orders.find(o => o.id === id);
+      if (order) order.status = status;
+      renderStats();
+      renderTable();
+      showToast('Estado actualizado.', 'ok');
+    } catch {
+      btn.disabled = false;
+      showToast('Erro ao actualizar.', 'err');
+    }
+  });
+
+  // ── Filters ───────────────────────────────────────────────────────────────
+  document.getElementById('filters').addEventListener('click', function(e) {
+    const btn = e.target.closest('.filter-btn');
+    if (!btn) return;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeFilter = btn.dataset.filter;
+    renderTable();
+  });
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  document.getElementById('refresh').addEventListener('click', loadOrders);
+
+  document.getElementById('logout').addEventListener('click', logout);
+
+  function logout() {
+    localStorage.removeItem('admin_token');
+    window.location.replace('/admin/login');
+  }
+
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent  = msg;
+    t.className    = `toast ${type} show`;
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  loadOrders();
+</script>
+</body>
+</html>
