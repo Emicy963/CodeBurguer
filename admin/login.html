@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeBurger — Admin</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #1a1a1a;
+    font-family: 'Segoe UI', sans-serif;
+    color: #f0f0f0;
+  }
+
+  .card {
+    background: #242424;
+    border-radius: 12px;
+    padding: 40px 36px;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+
+  .logo {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .logo h1 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #e63946;
+    letter-spacing: -0.5px;
+  }
+
+  .logo p {
+    font-size: 0.82rem;
+    color: #888;
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+
+  input {
+    width: 100%;
+    padding: 12px 14px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    color: #f0f0f0;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 20px;
+  }
+
+  input:focus { border-color: #e63946; }
+
+  button {
+    width: 100%;
+    padding: 13px;
+    background: #e63946;
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s, opacity 0.2s;
+  }
+
+  button:hover { background: #c1121f; }
+  button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .error {
+    display: none;
+    background: rgba(230,57,70,0.15);
+    border: 1px solid #e63946;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.88rem;
+    color: #e63946;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="logo">
+    <h1>CodeBurger</h1>
+    <p>Painel de Administração</p>
+  </div>
+
+  <div class="error" id="error"></div>
+
+  <form id="form">
+    <label for="username">Utilizador</label>
+    <input type="text" id="username" autocomplete="username" placeholder="admin" required>
+
+    <label for="password">Password</label>
+    <input type="password" id="password" autocomplete="current-password" placeholder="••••••••" required>
+
+    <button type="submit" id="btn">Entrar</button>
+  </form>
+</div>
+
+<script>
+  // Se já tem token válido, vai directo para o painel
+  if (localStorage.getItem('admin_token')) {
+    window.location.replace('/admin');
+  }
+
+  document.getElementById('form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const btn      = document.getElementById('btn');
+    const errorEl  = document.getElementById('error');
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+
+    btn.disabled    = true;
+    btn.textContent = 'A entrar…';
+    errorEl.style.display = 'none';
+
+    try {
+      const res  = await fetch('/api/admin/login', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        errorEl.textContent   = data.error || 'Credenciais inválidas.';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      localStorage.setItem('admin_token', data.token);
+      window.location.replace('/admin');
+
+    } catch {
+      errorEl.textContent   = 'Erro de ligação. Tenta novamente.';
+      errorEl.style.display = 'block';
+    } finally {
+      btn.disabled    = false;
+      btn.textContent = 'Entrar';
+    }
+  });
+</script>
+</body>
+</html>
